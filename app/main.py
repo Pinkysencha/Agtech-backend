@@ -5,7 +5,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config.database import check_connection
 from app.config.settings import settings
-from app.routes import health
+from app.middleware.error_handlers import register_error_handlers
+from app.middleware.request_logging import log_requests, setup_logging
+from app.routes import demo, health
+
+setup_logging()
 
 
 @asynccontextmanager
@@ -20,7 +24,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="AgTech API", lifespan=lifespan)
 
-# CORS: lets the React dev server call this API from the browser
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.frontend_url],
@@ -29,7 +33,14 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 
+
+app.middleware("http")(log_requests)
+
+register_error_handlers(app)
+
+
 app.include_router(health.router)
+app.include_router(demo.router)
 
 
 @app.get("/")
